@@ -359,10 +359,6 @@ export default {
       this.fetchDepartments();
     },
     
-    // 分页变化 - 移除这些方法，因为我们不再使用分页
-    // handleCurrentChange - 不再需要
-    // handleSizeChange - 不再需要
-
     // 新增部门
     handleAdd(parentId = null) {
       this.isEdit = false;
@@ -598,5 +594,58 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.department-management-container {
+  background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 100%);
+  min-height: 100%;
+  gap: 12px;
+  padding: 8px;
+}
+
+.operation-bar,
+.search-bar,
+.table-wrapper {
+  background: #fff;
+  border: 1px solid #edf1f7;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+}
+
+.operation-bar {
+  margin-bottom: 0;
+  padding: 12px 16px;
+}
+
+.search-bar {
+  margin-bottom: 0;
+  padding: 14px 16px 2px;
+}
+
+.table-wrapper {
+  padding: 10px 12px;
+}
+
+:deep(.el-table) {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+:deep(.el-button) {
+  border-radius: 8px;
+}
+
+:deep(.el-button > span) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+:deep(.el-button .el-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

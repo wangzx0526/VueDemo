@@ -703,6 +703,15 @@ export default {
 </script>
 
 <style scoped>
+.app-container {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 100%);
+}
+
 .user-list-container {
   background-color: #ffffff;
   border-radius: 8px;
@@ -817,5 +826,51 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.search-bar,
+.mb8,
+.table-and-pagination-wrapper {
+  background: #fff;
+  border: 1px solid #edf1f7;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+}
+
+.search-bar {
+  padding: 14px 16px 2px;
+  margin-bottom: 0;
+}
+
+.mb8 {
+  margin-bottom: 0;
+  padding: 12px 16px;
+}
+
+.table-and-pagination-wrapper {
+  padding: 10px 12px 14px;
+}
+
+:deep(.el-table) {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+:deep(.el-button) {
+  border-radius: 8px;
+}
+
+:deep(.el-button > span) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+:deep(.el-button .el-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

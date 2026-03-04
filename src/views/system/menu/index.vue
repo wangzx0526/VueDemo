@@ -132,40 +132,163 @@
     <el-dialog 
       v-model="dialogVisible" 
       :title="dialogTitle" 
-      width="600px"
+      width="800px"
       :modal="true"
       :lock-scroll="true"
       :close-on-click-modal="true"
       :append-to-body="true"
+      class="menu-dialog"
     >
       <el-form :model="menuForm" :rules="menuRules" ref="menuFormRef" label-width="100px">
-        <el-form-item label="菜单名称" prop="menuName">
-          <el-input v-model="menuForm.menuName" placeholder="请输入菜单名称"></el-input>
-        </el-form-item>
-        <el-form-item label="上级菜单" prop="parentId">
-          <el-tree-select
-            v-model="menuForm.parentId"
-            :data="menuTreeData"
-            placeholder="请选择上级菜单"
-            :props="{ value: 'id', label: 'menuName', children: 'children' }"
-            check-strictly
-            clearable
-            filterable
-            style="width: 100%"
-          />
-        </el-form-item>
-        <el-form-item label="排序" prop="orderNum">
-          <el-input-number v-model="menuForm.orderNum" :min="0" :max="999" placeholder="请输入排序值"></el-input-number>
-        </el-form-item>
-        <el-form-item label="状态" prop="status">
-          <el-switch
-            v-model="menuForm.status"
-            :active-value="0"
-            :inactive-value="1"
-            active-text="正常"
-            inactive-text="禁用">
-          </el-switch>
-        </el-form-item>
+        <el-divider content-position="left">基本信息</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="菜单名称" prop="menuName">
+              <el-input v-model="menuForm.menuName" placeholder="请输入菜单名称"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="上级菜单" prop="parentId">
+              <el-tree-select
+                v-model="menuForm.parentId"
+                :data="menuTreeData"
+                placeholder="请选择上级菜单"
+                :props="{ value: 'id', label: 'menuName', children: 'children' }"
+                check-strictly
+                clearable
+                filterable
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="菜单类型" prop="menuType">
+              <el-radio-group v-model="menuForm.menuType">
+                <el-radio label="M">目录</el-radio>
+                <el-radio label="C">菜单</el-radio>
+                <el-radio label="F">按钮</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="menuForm.menuType === 'M'">
+            <el-form-item label="排序" prop="orderNum">
+              <el-input-number v-model="menuForm.orderNum" :min="0" :max="999" placeholder="请输入排序值" style="width: 100%"></el-input-number>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12" v-if="menuForm.menuType === 'C'">
+            <el-form-item label="路由名称" prop="name">
+              <el-input v-model="menuForm.name" placeholder="如 users、settings"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">路由信息</el-divider>
+        
+        <el-row :gutter="20" v-if="menuForm.menuType === 'M'">
+          <el-col :span="12">
+            <el-form-item label="路由地址" prop="path">
+              <el-input v-model="menuForm.path" placeholder="如 user，外链需以http(s)://开头"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20" v-if="menuForm.menuType === 'C'">
+          <el-col :span="12">
+            <el-form-item label="路由名称" prop="name">
+              <el-input v-model="menuForm.name" placeholder="如 users、settings"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="路由地址" prop="path">
+              <el-input v-model="menuForm.path" placeholder="如 user，外链需以http(s)://开头"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20" v-if="menuForm.menuType === 'C'">
+          <el-col :span="12">
+            <el-form-item label="组件路径" prop="component">
+              <el-input v-model="menuForm.component" placeholder="如 system/user/index"></el-input>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20" v-if="menuForm.menuType === 'M' || menuForm.menuType === 'C'">
+          <el-col :span="12">
+            <el-form-item label="菜单图标" prop="icon">
+              <el-input v-model="menuForm.icon" placeholder="图标名称 如 User、Setting"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="是否外链" prop="isFrame">
+              <el-radio-group v-model="menuForm.isFrame">
+                <el-radio :label="0">是</el-radio>
+                <el-radio :label="1">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20" v-if="menuForm.menuType === 'C'">
+          <el-col :span="12">
+            <el-form-item label="权限字符" prop="perms">
+              <el-input v-model="menuForm.perms" placeholder="如 system:user:list"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="是否缓存" prop="keepAlive">
+              <el-radio-group v-model="menuForm.keepAlive">
+                <el-radio :label="1">是</el-radio>
+                <el-radio :label="0">否</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-row :gutter="20" v-if="menuForm.menuType === 'F'">
+          <el-col :span="12">
+            <el-form-item label="权限字符" prop="perms">
+              <el-input v-model="menuForm.perms" placeholder="如 system:user:list"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="菜单状态" prop="status">
+              <el-switch
+                v-model="menuForm.status"
+                :active-value="0"
+                :inactive-value="1"
+                active-text="正常"
+                inactive-text="禁用">
+              </el-switch>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        
+        <el-divider content-position="left" v-if="menuForm.menuType === 'M' || menuForm.menuType === 'C'">显示状态</el-divider>
+        <el-row :gutter="20" v-if="menuForm.menuType === 'M' || menuForm.menuType === 'C'">
+          <el-col :span="12">
+            <el-form-item label="显示状态" prop="visible">
+              <el-radio-group v-model="menuForm.visible">
+                <el-radio :label="0">显示</el-radio>
+                <el-radio :label="1">隐藏</el-radio>
+              </el-radio-group>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="状态" prop="status">
+              <el-switch
+                v-model="menuForm.status"
+                :active-value="0"
+                :inactive-value="1"
+                active-text="正常"
+                inactive-text="禁用">
+              </el-switch>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -180,6 +303,10 @@
 <script>
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/index';
+import { 
+  Platform, Document, Fold, Expand, House, Setting, Tools, User, List, 
+  Avatar, OfficeBuilding, Menu, Plus, Grid, Search 
+} from '@element-plus/icons-vue';
 
 export default {
   name: 'MenuManagementView',
@@ -201,18 +328,60 @@ export default {
         id: null,
         menuName: '',
         parentId: null,
+        menuType: 'C',    // 菜单类型：M=目录，C=菜单，F=按钮
+        name: '',         // 路由名称
+        path: '',         // 路由地址
+        component: '',    // 组件路径
+        perms: '',        // 权限字符
+        isFrame: 1,       // 是否外链：0=是，1=否
+        visible: 0,       // 显示状态：0=显示，1=隐藏
+        keepAlive: 0,     // 是否缓存：0=否，1=是
+        icon: '',         // 菜单图标
         orderNum: 1,
-        status: 0  // 默认状态为正常(0)
+        status: 0         // 默认状态为正常(0)
       },
       menuRules: {  // 菜单表单验证规则
         menuName: [
           { required: true, message: '请输入菜单名称', trigger: 'blur' },
           { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+        ],
+        path: [
+          { required: true, message: '请输入路由地址', trigger: 'blur' }
+        ],
+        component: [
+          { required: true, message: '请输入组件路径', trigger: 'blur' }
+        ],
+        perms: [
+          { required: true, message: '请输入权限字符', trigger: 'blur' }
         ]
       },
       currentMenu: {}, // 当前操作的菜单
       isExpandAll: true,     // 控制表格默认展开
       expandedRowKeys: []    // 存储展开的行的keys
+    }
+  },
+  watch: {
+    'menuForm.menuType'(newType) {
+      if (newType === 'M') {
+        this.menuForm.name = '';
+        this.menuForm.component = '';
+        this.menuForm.perms = '';
+        this.menuForm.keepAlive = 0;
+      } else if (newType === 'F') {
+        this.menuForm.name = '';
+        this.menuForm.path = '';
+        this.menuForm.component = '';
+        this.menuForm.isFrame = 1;
+        this.menuForm.visible = 0;
+        this.menuForm.keepAlive = 0;
+      } else {
+        if (this.menuForm.isFrame === undefined) {
+          this.menuForm.isFrame = 1;
+        }
+        if (this.menuForm.visible === undefined) {
+          this.menuForm.visible = 0;
+        }
+      }
     }
   },
   mounted() {
@@ -377,8 +546,17 @@ export default {
         id: null,
         menuName: '',
         parentId: parentId || null,
+        menuType: 'C',    // 菜单类型：M=目录，C=菜单，F=按钮
+        name: '',         // 路由名称
+        path: '',         // 路由地址
+        component: '',    // 组件路径
+        perms: '',        // 权限字符
+        isFrame: 1,       // 是否外链：0=是，1=否
+        visible: 0,       // 显示状态：0=显示，1=隐藏
+        keepAlive: 0,     // 是否缓存：0=否，1=是
+        icon: '',         // 菜单图标
         orderNum: 1,
-        status: 1
+        status: 0         // 默认状态为正常(0)
       };
 
       this.dialogVisible = true;
@@ -398,6 +576,15 @@ export default {
         ...row,
         menuName: row.menuName,
         parentId: row.parentId,
+        menuType: row.menuType || 'C',
+        name: row.name || '',
+        path: row.path || '',
+        component: row.component || '',
+        perms: row.perms || '',
+        isFrame: row.isFrame !== undefined ? row.isFrame : 1,
+        visible: row.visible !== undefined ? row.visible : 0,
+        keepAlive: row.keepAlive !== undefined ? row.keepAlive : 0,
+        icon: row.icon || '',
         orderNum: row.sort,  // 将sort映射为orderNum
         status: row.status
       };
@@ -412,21 +599,73 @@ export default {
         return;
       }
 
+      if (this.menuForm.menuType === 'M' || this.menuForm.menuType === 'C') {
+        if (!this.menuForm.path) {
+          ElMessage.error('请输入路由地址');
+          return;
+        }
+        
+        // 如果是外链，检查是否以http(s)://开头
+        if (this.menuForm.isFrame === 0 && !this.menuForm.path.startsWith('http://') && !this.menuForm.path.startsWith('https://')) {
+          ElMessage.error('外链地址需要以http://或https://开头');
+          return;
+        }
+      }
+      
+      if (this.menuForm.menuType === 'C') {
+        if (!this.menuForm.component) {
+          ElMessage.error('请输入组件路径');
+          return;
+        }
+        
+        if (!this.menuForm.perms) {
+          ElMessage.error('请输入权限字符');
+          return;
+        }
+      }
+      
+      if (this.menuForm.menuType === 'F') {
+        if (!this.menuForm.perms) {
+          ElMessage.error('请输入权限字符');
+          return;
+        }
+      }
+
       try {
         let response;
         const formData = { 
           ...this.menuForm,
-          sort: this.menuForm.orderNum  // 将orderNum映射为sort
+          sort: this.menuForm.orderNum,  // 将orderNum映射为sort
+          keepAlive: this.menuForm.keepAlive || 0
         };
         
         // 清除空值
         if (formData.parentId === null || formData.parentId === '') {
           formData.parentId = 0;
         }
+        
+        // 目录类型不需要这些字段
+        if (formData.menuType === 'M') {
+          delete formData.name;
+          delete formData.component;
+          delete formData.perms;
+          delete formData.keepAlive;
+        }
+        
+        // 按钮类型不需要这些字段
+        if (formData.menuType === 'F') {
+          delete formData.path;
+          delete formData.component;
+          delete formData.icon;
+          delete formData.isFrame;
+          delete formData.visible;
+          delete formData.keepAlive;
+          delete formData.name;
+        }
 
         if (this.isEdit) {
           // 更新菜单
-          response = await apiClient.put('/system/menu', formData);
+          response = await apiClient.post('/system/menu/update', formData);
           if (response && (response.code === 200 || response.code === undefined)) {
             ElMessage.success('菜单信息更新成功！');
           } else {
@@ -435,7 +674,7 @@ export default {
           }
         } else {
           // 新增菜单
-          response = await apiClient.post('/system/menu', formData);
+          response = await apiClient.post('/system/menu/add', formData);
           if (response && (response.code === 200 || response.code === undefined)) {
             ElMessage.success('菜单新增成功！');
           } else {
@@ -467,7 +706,7 @@ export default {
         );
 
         // 调用API删除菜单
-        const response = await apiClient.delete(`/system/menu/${row.id}`);
+        const response = await apiClient.delete(`/system/menu/delete/${row.id}`);
         if (response && (response.code === 200 || response.code === undefined)) {
           ElMessage.success('删除成功！');
           // 重新获取菜单列表
@@ -607,5 +846,127 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+/* 菜单对话框美化样式 */
+.menu-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 20px 24px;
+  margin: 0;
+}
+
+.menu-dialog :deep(.el-dialog__title) {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.menu-dialog :deep(.el-dialog__headerbtn .el-dialog__close) {
+  color: #ffffff;
+  font-size: 20px;
+}
+
+.menu-dialog :deep(.el-dialog__headerbtn .el-dialog__close:hover) {
+  color: #f0f0f0;
+}
+
+.menu-dialog :deep(.el-divider) {
+  margin: 20px 0 15px 0;
+}
+
+.menu-dialog :deep(.el-divider__text) {
+  font-weight: 600;
+  color: #409eff;
+  font-size: 14px;
+}
+
+.menu-dialog :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.menu-dialog :deep(.el-input__wrapper) {
+  border-radius: 6px;
+  transition: all 0.3s;
+}
+
+.menu-dialog :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px var(--el-input-border-color, var(--el-border-color)) inset;
+}
+
+.menu-dialog :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #409eff inset;
+}
+
+.menu-dialog :deep(.el-radio-button__inner) {
+  border-radius: 6px;
+}
+
+.menu-dialog :deep(.el-button) {
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-weight: 500;
+}
+
+.menu-dialog :deep(.el-button--primary) {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.menu-dialog :deep(.el-button--primary:hover) {
+  background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+}
+
+.app-container {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 6px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 100%);
+}
+
+:deep(.el-form--inline),
+.mb8,
+.table-and-pagination-wrapper {
+  background: #fff;
+  border: 1px solid #edf1f7;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+}
+
+:deep(.el-form--inline) {
+  padding: 14px 16px 2px;
+}
+
+.mb8 {
+  margin-bottom: 0;
+  padding: 12px 16px;
+}
+
+.table-and-pagination-wrapper {
+  padding: 10px 12px 14px;
+}
+
+:deep(.el-table) {
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+:deep(.el-button) {
+  border-radius: 8px;
+}
+
+:deep(.el-button > span) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+:deep(.el-button .el-icon) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

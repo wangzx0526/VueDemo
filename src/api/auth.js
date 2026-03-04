@@ -23,7 +23,7 @@ export const getAllUsers = () => {
 
 // 用户登出
 export const logout = () => {
-  return apiClient.post('/system/logout');
+  return apiClient.get('/system/logout');
 };
 
 // 获取当前用户信息

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="common-layout">
     <el-container>
       <el-aside :width="sidebarWidth" class="sidebar">
@@ -21,38 +21,28 @@
             <span>首页</span>
           </el-menu-item>
           
-          <el-sub-menu index="1">
-            <template #title>
-              <el-icon><Setting /></el-icon>
-              <span>系统管理</span>
-            </template>
-            <el-menu-item index="/system/settings" @click="selectTab('settings', '设置', '/system/settings')">
-              <el-icon><Tools /></el-icon>
-              <span>设置</span>
+          <template v-for="menu in dynamicMenus" :key="menu.fullPath || menu.path">
+            <el-sub-menu v-if="isMenuGroup(menu)" :index="resolveMenuPath(menu)">
+              <template #title>
+                <el-icon :is="getMenuIcon(menu.icon)" />
+                <span>{{ menu.name }}</span>
+              </template>
+              <el-menu-item 
+                v-for="child in getDisplayChildren(menu)" 
+                :key="child.fullPath || child.path" 
+                :index="resolveMenuPath(child)"
+                @click="selectTab(child.routeName || child.name, child.name, resolveMenuPath(child))"
+              >
+                <el-icon :is="getMenuIcon(child.icon)" />
+                <span>{{ child.name }}</span>
+              </el-menu-item>
+            </el-sub-menu>
+            
+            <el-menu-item v-else-if="isMenuItem(menu)" :index="resolveMenuPath(menu)" @click="selectTab(menu.routeName || menu.name, menu.name, resolveMenuPath(menu))">
+              <el-icon :is="getMenuIcon(menu.icon)" />
+              <span>{{ menu.name }}</span>
             </el-menu-item>
-            <el-menu-item index="/system/menus" @click="selectTab('menus', '菜单管理', '/system/menus')">
-              <el-icon><Menu /></el-icon>
-              <span>菜单管理</span>
-            </el-menu-item>
-            <el-menu-item index="/system/users" @click="selectTab('users', '用户管理', '/system/users')">
-              <el-icon><List /></el-icon>
-              <span>用户管理</span>
-            </el-menu-item>
-            <el-menu-item index="/system/roles" @click="selectTab('roles', '角色管理', '/system/roles')">
-              <el-icon><Avatar /></el-icon>
-              <span>角色管理</span>
-            </el-menu-item>
-            <el-menu-item index="/system/departments" @click="selectTab('departments', '部门管理', '/system/departments')">
-              <el-icon><OfficeBuilding /></el-icon>
-              <span>部门管理</span>
-            </el-menu-item>
-          </el-sub-menu>
-          <el-sub-menu index="2">
-            <template #title>
-              <el-icon><User /></el-icon>
-              <span>测试菜单</span>
-            </template>
-          </el-sub-menu>
+          </template>
         </el-menu>
       </el-aside>
       
@@ -151,6 +141,10 @@
 
 <script>
 import { Platform, Document, Fold, Expand, House, Setting, Tools, User, List, Avatar, OfficeBuilding, Menu } from '@element-plus/icons-vue'
+import { mapActions } from 'vuex'
+import { logout } from '@/api/auth'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { resetRouter } from '@/router'
 
 export default {
   name: 'SystemView',
@@ -182,7 +176,8 @@ export default {
       contextMenuVisible: false, // 右键菜单显示状态
       contextMenuX: 0, // 右键菜单X坐标
       contextMenuY: 0, // 右键菜单Y坐标
-      currentTab: null // 当前右键点击的标签页
+      currentTab: null, // 当前右键点击的标签页
+      dynamicMenus: [] // 动态菜单数据
     };
   },
   computed: {
@@ -220,14 +215,101 @@ export default {
     }
   },
   created() {
-    // 从 localStorage 恢复标签页状态
     this.restoreTabsFromStorage();
+    this.loadUserMenu();
   },
   mounted() {
     // 确保路由变化时更新状态
     this.updateActiveStates(this.$route.path);
   },
   methods: {
+    ...mapActions('menu', ['generateRoutes', 'generateDynamicRoutes']),
+    
+    async loadUserMenu() {
+      try {
+        const menus = await this.generateRoutes();
+        this.dynamicMenus = Array.isArray(menus) ? menus : [];
+
+        const dynamicRoutes = await this.generateDynamicRoutes();
+        const routeList = Array.isArray(dynamicRoutes) ? dynamicRoutes : [];
+
+        const { addDynamicRoutes } = await import('@/router');
+        addDynamicRoutes(routeList);
+
+        if (this.$route.path !== '/system' && this.$route.name === 'system-home') {
+          this.$router.replace(this.$route.fullPath);
+        }
+      } catch (error) {
+        console.error('Failed to load user menu:', error);
+      }
+    },
+
+    isMenuGroup(menu) {
+      if (!menu || !this.isDisplayableMenu(menu)) return false;
+      return Array.isArray(menu.children) && menu.children.some(child => this.isDisplayableMenu(child));
+    },
+
+    isMenuItem(menu) {
+      if (!menu || !this.isDisplayableMenu(menu)) return false;
+      return !Array.isArray(menu.children) || menu.children.length === 0;
+    },
+
+    getDisplayChildren(menu) {
+      if (!menu || !Array.isArray(menu.children)) return [];
+      return menu.children.filter(child => this.isDisplayableMenu(child));
+    },
+
+    isDisplayableMenu(menu) {
+      const type = String(menu.type || '').toUpperCase();
+      return type === 'MENU' || type === 'DIRECTORY' || type === 'M' || type === 'C';
+    },
+
+    resolveMenuPath(menu) {
+      if (!menu) return '/system';
+      const rawPath = String(menu.fullPath || menu.path || '').trim();
+      if (!rawPath) return '/system';
+
+      if (this.isExternalUrl(rawPath)) {
+        return rawPath;
+      }
+
+      const normalized = rawPath.startsWith('/') ? rawPath : `/${rawPath}`;
+      if (normalized === '/system') {
+        return '/system';
+      }
+
+      if (normalized.startsWith('/system/')) {
+        return normalized.replace(/\/{2,}/g, '/');
+      }
+
+      return `/system${normalized}`.replace(/\/{2,}/g, '/');
+    },
+
+    isExternalUrl(path) {
+      return /^(https?:)?\/\//i.test(String(path || '').trim());
+    },
+    
+    getMenuIcon(iconName) {
+      if (!iconName) return 'Menu';
+      
+      const iconMap = {
+        'Setting': Setting,
+        'Tools': Tools,
+        'Menu': Menu,
+        'List': List,
+        'Avatar': Avatar,
+        'OfficeBuilding': OfficeBuilding,
+        'User': User,
+        'House': House,
+        'Document': Document,
+        'Platform': Platform,
+        'Fold': Fold,
+        'Expand': Expand
+      };
+      
+      return iconMap[iconName] || 'Menu';
+    },
+    
     // 返回标签的显示内容，为当前激活的标签添加白色圆形指示器
     getTabLabel(tab) {
       return tab.title;
@@ -250,6 +332,11 @@ export default {
     },
     
     selectTab(name, title, route) {
+      if (this.isExternalUrl(route)) {
+        window.open(route, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
       // 检查标签页是否已存在
       const tabExists = this.tabsList.some(tab => tab.name === name);
       
@@ -353,12 +440,45 @@ export default {
     // 处理用户下拉菜单命令
     handleUserCommand(command) {
       if (command === 'profile') {
-        // 跳转到个人中心页面
-        console.log('跳转到个人中心');
+        this.$router.push('/system/profile');
       } else if (command === 'logout') {
-        // 执行登出操作
-        console.log('执行登出操作');
-        // 这里可以添加清除token、跳转登录页等逻辑
+        this.handleLogout();
+      }
+    },
+    
+    // 退出登录
+    async handleLogout() {
+      try {
+        await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        });
+        
+        // 调用退出登录API
+        await logout();
+        
+        // 清除token
+        localStorage.removeItem('authToken');
+        
+        // 清除标签页数据
+        localStorage.removeItem('systemTabsData');
+        resetRouter();
+        
+        // 显示成功消息
+        ElMessage.success('退出登录成功');
+        
+        // 跳转到登录页
+        this.$router.replace('/auth');
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('退出登录失败:', error);
+          // 即使API调用失败，也清除本地数据并跳转
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('systemTabsData');
+          resetRouter();
+          this.$router.replace('/auth');
+        }
       }
     },
     
@@ -593,6 +713,29 @@ export default {
   margin-left: 8px;
   font-size: 14px;
   color: #666;
+}
+
+/* 修复 el-dropdown 悬停时的黑色方框问题 */
+:deep(.el-dropdown) {
+  display: inline-block;
+}
+
+:deep(.el-dropdown .el-dropdown-link) {
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+:deep(.el-dropdown .el-dropdown-link:hover) {
+  background-color: transparent;
+}
+
+:deep(.el-dropdown-menu__item) {
+  padding: 10px 20px;
+}
+
+:deep(.el-dropdown-menu__item:hover) {
+  background-color: #ecf5ff;
 }
 
 .main-content {

@@ -18,7 +18,7 @@
           </div>
         </div>
         <div class="stat-trend">
-          <el-tag type="success" size="mini">+12%</el-tag>
+          <el-tag type="success" size="small">+12%</el-tag>
           <span>较上周</span>
         </div>
       </el-card>
@@ -34,7 +34,7 @@
           </div>
         </div>
         <div class="stat-trend">
-          <el-tag type="success" size="mini">+3</el-tag>
+          <el-tag type="success" size="small">+3</el-tag>
           <span>较上月</span>
         </div>
       </el-card>
@@ -50,7 +50,7 @@
           </div>
         </div>
         <div class="stat-trend">
-          <el-tag type="warning" size="mini">0</el-tag>
+          <el-tag type="warning" size="small">0</el-tag>
           <span>较上周</span>
         </div>
       </el-card>
@@ -66,7 +66,7 @@
           </div>
         </div>
         <div class="stat-trend">
-          <el-tag type="success" size="mini">+24%</el-tag>
+          <el-tag type="success" size="small">+24%</el-tag>
           <span>较上周</span>
         </div>
       </el-card>
