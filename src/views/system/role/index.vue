@@ -1,5 +1,6 @@
 <template>
   <div class="app-container">
+    <div class="content-card">
     <el-form
       :model="searchForm"
       ref="queryRef"
@@ -175,12 +176,13 @@
       v-model:limit="pageSize"
       @pagination="fetchRoles"
     />
+    </div>
     
     <!-- 编辑角色对话框 -->
     <el-dialog 
       v-model="dialogVisible" 
       :title="dialogTitle" 
-      width="600px"
+      width="700px"
       :modal="true"
       :lock-scroll="true"
       :close-on-click-modal="true"
@@ -213,6 +215,20 @@
             inactive-text="禁用">
           </el-switch>
         </el-form-item>
+        <el-form-item label="菜单权限" prop="menuIds">
+          <el-tree
+            ref="editMenuTreeRef"
+            :data="menuTreeData"
+            :props="{ label: 'menuName', children: 'children' }"
+            node-key="id"
+            show-checkbox
+            default-expand-all
+            :check-strictly="true"
+            @check="handleEditTreeCheck"
+            placeholder="请选择菜单权限"
+            style="width: 100%; max-height: 300px; overflow-y: auto;"
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -226,7 +242,7 @@
     <el-dialog 
       v-model="addDialogVisible" 
       title="新增角色" 
-      width="600px"
+      width="700px"
       :modal="true"
       :lock-scroll="true"
       :close-on-click-modal="true"
@@ -259,6 +275,20 @@
             inactive-text="禁用">
           </el-switch>
         </el-form-item>
+        <el-form-item label="菜单权限" prop="menuIds">
+          <el-tree
+            ref="addMenuTreeRef"
+            :data="menuTreeData"
+            :props="{ label: 'menuName', children: 'children' }"
+            node-key="id"
+            show-checkbox
+            default-expand-all
+            :check-strictly="true"
+            @check="handleAddTreeCheck"
+            placeholder="请选择菜单权限"
+            style="width: 100%; max-height: 300px; overflow-y: auto;"
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -271,7 +301,8 @@
 </template>
 
 <script>
-import { getRoleList, updateRole, deleteRole, batchDeleteRoles, addRole } from '@/api/auth';
+import { getRoleList, updateRole, deleteRole, batchDeleteRoles, addRole, getRoleById } from '@/api/auth';
+import { getMenuTree } from '@/api/menu';
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 export default {
@@ -293,20 +324,23 @@ export default {
       dialogVisible: false, // 控制编辑对话框显示
       addDialogVisible: false, // 控制新增对话框显示
       dialogTitle: '编辑角色',
+      menuTreeData: [], // 菜单树数据
       roleForm: {         // 编辑角色表单数据
         id: null,
         roleName: '',
         roleCode: '',
         description: '',
         sort: 1,
-        status: 1
+        status: 1,
+        menuIds: []
       },
       addRoleForm: {      // 新增角色表单数据
         roleName: '',
         roleCode: '',
         description: '',
         sort: 1,
-        status: 1
+        status: 1,
+        menuIds: []
       },
       roleRules: {        // 角色表单验证规则
         roleName: [
@@ -327,8 +361,69 @@ export default {
   },
   mounted() {
     this.fetchRoles();
+    this.fetchMenuTree();
   },
   methods: {
+    // 获取菜单树数据
+    async fetchMenuTree() {
+      try {
+        const response = await getMenuTree();
+        
+        let data = null;
+        if (response && Array.isArray(response)) {
+          data = response;
+        } else if (response && response.code === 200 && Array.isArray(response.data)) {
+          data = response.data;
+        }
+        
+        this.menuTreeData = data || [];
+      } catch (error) {
+        console.error('Failed to fetch menu tree:', error);
+      }
+    },
+    
+    // 编辑对话框 - 处理树节点选中事件（选中子节点时自动选中父节点）
+    handleEditTreeCheck(data, { checkedKeys }) {
+      const node = this.$refs.editMenuTreeRef.getNode(data.id);
+      if (node.checked) {
+        this.checkParentNodes(this.$refs.editMenuTreeRef, data.id);
+      } else {
+        this.uncheckEmptyParentNodes(this.$refs.editMenuTreeRef, data.id);
+      }
+    },
+    
+    // 新增对话框 - 处理树节点选中事件（选中子节点时自动选中父节点）
+    handleAddTreeCheck(data, { checkedKeys }) {
+      const node = this.$refs.addMenuTreeRef.getNode(data.id);
+      if (node.checked) {
+        this.checkParentNodes(this.$refs.addMenuTreeRef, data.id);
+      } else {
+        this.uncheckEmptyParentNodes(this.$refs.addMenuTreeRef, data.id);
+      }
+    },
+    
+    // 递归选中所有父节点
+    checkParentNodes(treeRef, nodeId) {
+      const node = treeRef.getNode(nodeId);
+      if (node && node.parent && node.parent.key) {
+        treeRef.setChecked(node.parent.key, true, false);
+        this.checkParentNodes(treeRef, node.parent.key);
+      }
+    },
+    
+    // 递归取消选中空的父节点（当子节点全部取消选中时）
+    uncheckEmptyParentNodes(treeRef, nodeId) {
+      const node = treeRef.getNode(nodeId);
+      if (node && node.parent && node.parent.key) {
+        const parentNode = node.parent;
+        const hasCheckedChild = parentNode.childNodes.some(child => child.checked);
+        if (!hasCheckedChild) {
+          treeRef.setChecked(parentNode.key, false, false);
+          this.uncheckEmptyParentNodes(treeRef, parentNode.key);
+        }
+      }
+    },
+    
     // 获取角色列表
     async fetchRoles() {
       try {
@@ -359,13 +454,13 @@ export default {
         const response = await getRoleList(params);
         
         // 根据实际返回格式处理数据
-        if (response && response.code === 200) {
+        if (response && response.code === 200 && response.data) {
           // 为每个角色添加默认状态值（如果后端没有返回状态字段）
-          this.roleData = (response.records || []).map(role => ({
+          this.roleData = (response.data.records || []).map(role => ({
             ...role,
             status: role.status !== undefined ? role.status : 1  // 默认状态为正常
           }));
-          this.paginationTotal = response.total || 0;
+          this.paginationTotal = response.data.total || 0;
         } else {
           console.error('Unexpected response format:', response);
           ElMessage.error('获取角色列表失败');
@@ -443,8 +538,17 @@ export default {
         roleCode: '',
         description: '',
         sort: 1,
-        status: 1
+        status: 1,
+        menuIds: []
       };
+      
+      // 清空菜单树选择
+      this.$nextTick(() => {
+        if (this.$refs.addMenuTreeRef) {
+          this.$refs.addMenuTreeRef.setCheckedKeys([]);
+        }
+      });
+      
       this.addDialogVisible = true;
     },
     
@@ -462,8 +566,15 @@ export default {
       }
       
       try {
+        // 获取选中的菜单ID
+        const menuIds = this.$refs.addMenuTreeRef ? this.$refs.addMenuTreeRef.getCheckedKeys() : [];
+        const formData = {
+          ...this.addRoleForm,
+          menuIds: menuIds
+        };
+        
         // 调用API新增角色
-        const response = await addRole(this.addRoleForm);
+        const response = await addRole(formData);
         
         if(response) {
           ElMessage.success('角色新增成功！');
@@ -480,14 +591,37 @@ export default {
     },
     
     // 编辑角色
-    handleEdit(row) {
+    async handleEdit(row) {
       this.dialogTitle = '编辑角色';
       this.currentRole = { ...row };
-      this.roleForm = { 
-        ...row,
-        description: row.description || ''  // 确保角色描述字段存在
-      };
-      this.dialogVisible = true;
+      
+      try {
+        const response = await getRoleById(row.id);
+        // 后端返回格式：{ code: 200, message, data: { id, roleName, ... } }
+        const data = (response && response.code === 200 && response.data)
+          ? response.data
+          : response;
+        
+        this.roleForm = { 
+          ...data,
+          description: data.description || '',
+          menuIds: Array.isArray(data.menuIds) ? data.menuIds : (data.menuIds ? [data.menuIds] : [])
+        };
+        
+        this.dialogVisible = true;
+        
+        this.$nextTick(() => {
+          const menuIds = this.roleForm.menuIds || [];
+          if (this.$refs.editMenuTreeRef && menuIds.length > 0) {
+            this.$refs.editMenuTreeRef.setCheckedKeys(menuIds);
+          } else if (this.$refs.editMenuTreeRef) {
+            this.$refs.editMenuTreeRef.setCheckedKeys([]);
+          }
+        });
+      } catch (error) {
+        console.error('Failed to get role details:', error);
+        ElMessage.error('获取角色详情失败');
+      }
     },
     
     // 确认保存
@@ -499,8 +633,15 @@ export default {
       }
       
       try {
+        // 获取选中的菜单ID
+        const menuIds = this.$refs.editMenuTreeRef ? this.$refs.editMenuTreeRef.getCheckedKeys() : [];
+        const formData = {
+          ...this.roleForm,
+          menuIds: menuIds
+        };
+        
         // 调用API更新角色信息
-        const response = await updateRole(this.roleForm);
+        const response = await updateRole(formData);
         
         if(response) {
           ElMessage.success('角色信息更新成功！');
@@ -743,35 +884,54 @@ export default {
   overflow-y: auto;
 }
 
-:deep(.el-form--inline),
-.mb8,
-:deep(.el-table),
-:deep(.pagination-container) {
+/* 搜索栏、按钮栏、表格统一在一个盒子内（和用户管理保持一致） */
+.content-card {
   background: #fff;
   border: 1px solid #edf1f7;
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
+/* 顶部搜索区域紧贴卡片顶部 */
 :deep(.el-form--inline) {
-  padding: 14px 16px 2px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
+/* 按钮行紧挨搜索，不再是独立卡片 */
 .mb8 {
-  margin-bottom: 0;
-  padding: 12px 16px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
+/* 表格保持圆角，去掉多余内边距卡片 */
 :deep(.el-table) {
   border-radius: 10px;
   overflow: hidden;
-  padding: 10px 12px;
 }
 
 :deep(.pagination-container) {
-  margin-top: 12px;
-  padding: 10px 12px;
+  margin-top: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
+
 
 :deep(.el-button) {
   border-radius: 8px;
@@ -790,4 +950,7 @@ export default {
   align-items: center;
   justify-content: center;
 }
+
+
+
 </style>

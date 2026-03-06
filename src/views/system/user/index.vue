@@ -1,7 +1,6 @@
 <template>
   <div class="app-container">
-    <!-- <h2>用户列表</h2> -->
-        
+    <div class="content-card">
     <!-- 搜索栏 -->
     <div class="search-bar">
       <el-form :inline="true" :model="searchForm" class="search-form" v-show="showSearch" @submit.prevent>
@@ -152,6 +151,7 @@
         v-model:limit="pageSize"
         @pagination="fetchUsers"
       />
+    </div>
     </div>
     
     <!-- 编辑用户对话框 -->
@@ -393,9 +393,9 @@ export default {
         const response = await getUserList(params);
         
         // 根据实际返回格式处理数据
-        if (response && response.code === 200) {
-          this.userData = response.records || [];
-          this.paginationTotal = response.total || 0;
+        if (response && response.code === 200 && response.data) {
+          this.userData = response.data.records || [];
+          this.paginationTotal = response.data.total || 0;
         } else {
           console.error('Unexpected response format:', response);
           this.$message.error('获取用户列表失败');
@@ -636,9 +636,16 @@ export default {
       try {
         const response = await apiClient.get('/system/dept/tree');
         
+        let data = null;
         if (response && Array.isArray(response)) {
+          data = response;
+        } else if (response && response.code === 200 && Array.isArray(response.data)) {
+          data = response.data;
+        }
+        
+        if (data) {
           // 处理返回的数据，构建树形结构
-          this.deptTreeData = this.buildDeptTree(response);
+          this.deptTreeData = this.buildDeptTree(data);
         } else {
           console.error('Unexpected department tree response format:', response);
           this.$message.error('获取部门树形数据失败');
@@ -687,8 +694,15 @@ export default {
       try {
         const response = await apiClient.get('/system/role/tree');
         
+        let data = null;
         if (response && Array.isArray(response)) {
-          this.roleTreeData = response;
+          data = response;
+        } else if (response && response.code === 200 && Array.isArray(response.data)) {
+          data = response.data;
+        }
+        
+        if (data) {
+          this.roleTreeData = data;
         } else {
           console.error('Unexpected role response format:', response);
           this.$message.error('获取角色数据失败');
@@ -828,27 +842,36 @@ export default {
   gap: 10px;
 }
 
-.search-bar,
-.mb8,
-.table-and-pagination-wrapper {
+/* 搜索栏、按钮栏、表格统一在一个盒子内 */
+.content-card {
   background: #fff;
   border: 1px solid #edf1f7;
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .search-bar {
-  padding: 14px 16px 2px;
-  margin-bottom: 0;
+  padding: 0;
+  margin: 0;
 }
 
 .mb8 {
-  margin-bottom: 0;
-  padding: 12px 16px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .table-and-pagination-wrapper {
-  padding: 10px 12px 14px;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
 }
 
 :deep(.el-table) {
@@ -856,14 +879,26 @@ export default {
   overflow: hidden;
 }
 
+/* 按钮文字和图标居中 */
 :deep(.el-button) {
   border-radius: 8px;
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  padding: 8px 16px;
 }
 
-:deep(.el-button > span) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+:deep(.el-button > *) {
+  flex: none !important;
+}
+
+:deep(.el-button > span),
+:deep(.el-button .el-button__text) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
   gap: 6px;
   line-height: 1;
 }
@@ -872,5 +907,6 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-right: 4px;
 }
 </style>

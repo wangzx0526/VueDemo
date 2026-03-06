@@ -84,18 +84,25 @@ export function addDynamicRoutes(dynamicRoutes) {
     }
     existing.add(route.path)
   })
+  
+  dynamicRoutesLoaded = true
 }
 
 async function ensureDynamicRoutesLoaded() {
   if (dynamicRoutesLoaded) {
-    return
+    return true
   }
 
-  const menus = await store.dispatch('menu/generateRoutes')
-  const dynamicRoutes = await store.dispatch('menu/generateDynamicRoutes')
-  addDynamicRoutes(Array.isArray(dynamicRoutes) ? dynamicRoutes : [])
-  store.commit('menu/SET_MENUS', Array.isArray(menus) ? menus : [])
-  dynamicRoutesLoaded = true
+  try {
+    const menus = await store.dispatch('menu/generateRoutes')
+    const dynamicRoutes = await store.dispatch('menu/generateDynamicRoutes')
+    addDynamicRoutes(Array.isArray(dynamicRoutes) ? dynamicRoutes : [])
+    store.commit('menu/SET_MENUS', Array.isArray(menus) ? menus : [])
+    return true
+  } catch (error) {
+    console.error('Failed to load dynamic routes:', error)
+    return false
+  }
 }
 
 router.beforeEach(async (to) => {
@@ -108,7 +115,12 @@ router.beforeEach(async (to) => {
 
   if (isSystemPath && token) {
     const wasLoaded = dynamicRoutesLoaded
-    await ensureDynamicRoutesLoaded()
+    const loaded = await ensureDynamicRoutesLoaded()
+    
+    if (!loaded) {
+      return '/auth'
+    }
+    
     if (!wasLoaded) {
       return { path: to.path, query: to.query, hash: to.hash, replace: true }
     }

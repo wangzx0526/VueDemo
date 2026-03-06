@@ -1,5 +1,6 @@
 <template>
   <div class="app-container">
+    <div class="content-card">
     <el-form
       :model="searchForm"
       ref="queryRef"
@@ -190,7 +191,7 @@
         <el-row :gutter="20" v-if="menuForm.menuType === 'M'">
           <el-col :span="12">
             <el-form-item label="路由地址" prop="path">
-              <el-input v-model="menuForm.path" placeholder="如 user，外链需以http(s)://开头"></el-input>
+              <el-input v-model="menuForm.path" placeholder="非外链填如 system、user；外链需以 http(s):// 开头"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -203,7 +204,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="路由地址" prop="path">
-              <el-input v-model="menuForm.path" placeholder="如 user，外链需以http(s)://开头"></el-input>
+              <el-input v-model="menuForm.path" placeholder="非外链填如 system、user；外链需以 http(s):// 开头"></el-input>
             </el-form-item>
           </el-col>
         </el-row>
@@ -297,12 +298,14 @@
         </span>
       </template>
     </el-dialog>
+    </div>
   </div>
 </template>
 
 <script>
 import { ElMessage, ElMessageBox } from 'element-plus';
 import apiClient from '@/api/index';
+import { getMenuById } from '@/api/menu';
 import { 
   Platform, Document, Fold, Expand, House, Setting, Tools, User, List, 
   Avatar, OfficeBuilding, Menu, Plus, Grid, Search 
@@ -562,33 +565,50 @@ export default {
       this.dialogVisible = true;
     },
 
-    // 新增子菜单
-    handleAddChild(menu) {
-      this.handleAdd(menu.id);
+    // 新增子菜单：先请求父菜单详情再打开新增弹窗
+    async handleAddChild(menu) {
+      try {
+        const res = await getMenuById(menu.id);
+        const data = (res && (res.code === 0 || res.code === 200) && res.data) ? res.data : res;
+        this.handleAdd(data.id != null ? data.id : menu.id);
+      } catch (e) {
+        console.error('获取父菜单失败', e);
+        this.handleAdd(menu.id);
+      }
     },
 
-    // 编辑菜单
-    handleEdit(row) {
-      this.isEdit = true;
-      this.dialogTitle = '编辑菜单';
-      this.currentMenu = { ...row };
-      this.menuForm = { 
-        ...row,
-        menuName: row.menuName,
-        parentId: row.parentId,
-        menuType: row.menuType || 'C',
-        name: row.name || '',
-        path: row.path || '',
-        component: row.component || '',
-        perms: row.perms || '',
-        isFrame: row.isFrame !== undefined ? row.isFrame : 1,
-        visible: row.visible !== undefined ? row.visible : 0,
-        keepAlive: row.keepAlive !== undefined ? row.keepAlive : 0,
-        icon: row.icon || '',
-        orderNum: row.sort,  // 将sort映射为orderNum
-        status: row.status
-      };
-      this.dialogVisible = true;
+    // 编辑菜单：调用 /system/menu/{id} 获取详情并回填表单
+    async handleEdit(row) {
+      try {
+        const res = await getMenuById(row.id);
+        // 兼容 { code: 0|200, data: {...} } 或直接返回数据
+        const data = (res && (res.code === 0 || res.code === 200) && res.data)
+          ? res.data
+          : res;
+        this.isEdit = true;
+        this.dialogTitle = '编辑菜单';
+        this.currentMenu = { ...data };
+        this.menuForm = {
+          id: data.id,
+          menuName: data.menuName || '',
+          parentId: data.parentId != null ? data.parentId : null,
+          menuType: data.menuType || 'C',
+          name: data.routeName != null ? data.routeName : (data.name || ''),
+          path: data.path || '',
+          component: data.component || '',
+          perms: data.perms || '',
+          isFrame: data.isFrame !== undefined ? data.isFrame : 1,
+          visible: data.visible !== undefined ? data.visible : 0,
+          keepAlive: data.isCache !== undefined ? data.isCache : (data.keepAlive !== undefined ? data.keepAlive : 0),
+          icon: data.icon || '',
+          orderNum: data.sort !== undefined ? data.sort : (data.orderNum != null ? data.orderNum : 1),
+          status: data.status !== undefined ? data.status : 0
+        };
+        this.dialogVisible = true;
+      } catch (error) {
+        console.error('获取菜单详情失败', error);
+        ElMessage.error('获取菜单详情失败');
+      }
     },
 
     // 确认保存
@@ -605,10 +625,13 @@ export default {
           return;
         }
         
-        // 如果是外链，检查是否以http(s)://开头
-        if (this.menuForm.isFrame === 0 && !this.menuForm.path.startsWith('http://') && !this.menuForm.path.startsWith('https://')) {
-          ElMessage.error('外链地址需要以http://或https://开头');
-          return;
+        // 仅当选择「外链」时，路由地址需以 http(s):// 开头；非外链可为普通路径如 system
+        if (this.menuForm.isFrame === 0) {
+          const p = (this.menuForm.path || '').trim();
+          if (!p.startsWith('http://') && !p.startsWith('https://')) {
+            ElMessage.error('选择外链时，路由地址需以 http:// 或 https:// 开头');
+            return;
+          }
         }
       }
       
@@ -925,32 +948,53 @@ export default {
   background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 100%);
 }
 
-:deep(.el-form--inline),
-.mb8,
-.table-and-pagination-wrapper {
+/* 搜索栏、按钮栏、表格统一在一个盒子内（同用户管理） */
+.content-card {
   background: #fff;
   border: 1px solid #edf1f7;
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
+/* 搜索表单平铺在卡片顶部 */
 :deep(.el-form--inline) {
-  padding: 14px 16px 2px;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
+/* 按钮行和搜索一体，不再出一块卡片 */
 .mb8 {
-  margin-bottom: 0;
-  padding: 12px 16px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
+/* 表格区域占满剩余空间 */
 .table-and-pagination-wrapper {
-  padding: 10px 12px 14px;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
 }
 
+/* 表格保留圆角 */
 :deep(.el-table) {
   border-radius: 10px;
   overflow: hidden;
 }
+
 
 :deep(.el-button) {
   border-radius: 8px;

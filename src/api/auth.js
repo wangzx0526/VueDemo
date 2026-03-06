@@ -86,6 +86,11 @@ export const batchDeleteRoles = (ids) => {
   return apiClient.delete('/system/role/batchDelete', { data: ids });
 };
 
+// 根据ID获取角色信息
+export const getRoleById = (roleId) => {
+  return apiClient.get(`/system/role/${roleId}`);
+};
+
 // 获取部门列表
 export const getDepartmentList = (params) => {
   return apiClient.get('/system/dept/pagelist', { params });

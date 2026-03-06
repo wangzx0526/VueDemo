@@ -1,13 +1,6 @@
 <template>
-  <div class="department-management-container">
-    <h2>部门管理</h2>
-    
-    <!-- 操作按钮栏 -->
-    <div class="operation-bar">
-      <el-button type="primary" @click="handleAdd()">新增</el-button>
-      <el-button @click="toggleExpandAll">{{ isExpandAll ? '折叠全部' : '展开全部' }}</el-button>
-    </div>
-    
+  <div class="app-container">
+    <div class="content-card">    
     <!-- 搜索栏 -->
     <div class="search-bar">
       <el-form :inline="true" :model="searchForm" class="search-form">
@@ -36,6 +29,12 @@
       </el-form>
     </div>
     
+    <!-- 操作按钮栏 -->
+    <div class="operation-bar">
+      <el-button type="primary" @click="handleAdd()">新增</el-button>
+      <el-button @click="toggleExpandAll">{{ isExpandAll ? '折叠全部' : '展开全部' }}</el-button>
+    </div>
+
     <div class="table-wrapper">
       <div class="table-container">
         <el-table 
@@ -101,9 +100,7 @@
           </template>
         </el-table-column>
         </el-table>
-      </div>
-      
-      <!-- 分页 - 已移除，因为现在使用非分页接口 -->
+      </div>      
     </div>
     
     <!-- 编辑/新增部门对话框 -->
@@ -151,6 +148,7 @@
         </span>
       </template>
     </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -473,143 +471,62 @@ export default {
 </script>
 
 <style scoped>
-.department-management-container {
-  background-color: #ffffff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  height: calc(100vh - 120px); /* 调整高度，确保界面组件可见 */
-}
-
-.operation-bar {
-  margin-bottom: 20px;
-  display: flex;
-  gap: 10px;
-}
-
-.search-bar {
-  margin-bottom: 20px;
-}
-
-.search-form {
-  display: flex;
-  flex-wrap: wrap;
-}
-
-.search-form .el-form-item {
-  margin-right: 20px;
-  margin-bottom: 15px;
-}
-
-.search-form .el-form-item:last-child {
-  margin-right: 0;
-  flex: unset;
-  min-width: auto;
-}
-
-.search-form .el-form-item:nth-last-child(2) {  /* 状态选择框是倒数第二个元素 */
-  margin-right: 20px;
-}
-
-.table-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.table-container {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.table-container :deep(.el-table) {
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
-
-.pagination {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;  /* 分页右对齐 */
-  flex-shrink: 0; /* 防止分页被压缩 */
-}
-
-:deep(.el-table) {
-  width: 100% !important;
-  table-layout: fixed; /* 固定表格布局以提高性能 */
-}
-
-:deep(.el-table th),
-:deep(.el-table td) {
-  white-space: nowrap;
-  padding: 8px 0;
-  min-width: 0;
-}
-
-:deep(.el-table th div),
-:deep(.el-table td div) {
-  padding: 8px 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-:deep(.el-table .cell) {
-  word-break: break-word;
-  padding-left: 8px;
-  padding-right: 8px;
-  text-align: center;
-}
-
-/* 操作列按钮样式 */
-:deep(.el-table .el-table__cell .cell) {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-}
-
-:deep(.el-table .el-table__cell .cell .el-button) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 12px;
-}
-
-:deep(.el-table .el-table__cell .cell .el-button span) {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.department-management-container {
-  background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 100%);
+/* 外层 content-view 背景 */
+.app-container {
   min-height: 100%;
+  display: flex;
+  flex-direction: column;
   gap: 12px;
   padding: 8px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f3f6fb 100%);
 }
 
-.operation-bar,
-.search-bar,
-.table-wrapper {
+/* 搜索 + 按钮 + 表格 一张卡片 */
+.content-card {
   background: #fff;
   border: 1px solid #edf1f7;
   border-radius: 12px;
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 搜索区域平铺 */
+.search-bar {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* 按钮行贴着搜索，不再卡片 */
+.operation-bar {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+/* 表格区域占满剩余空间 */
+.table-wrapper {
+  flex: 1;
+  padding: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 表格保留圆角 */
+:deep(.el-table) {
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .operation-bar {

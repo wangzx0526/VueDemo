@@ -294,6 +294,8 @@ export default {
         if (token) {
           localStorage.setItem('authToken', token);
           
+          localStorage.removeItem('systemTabsData');
+          
           try {
             await this.generateRoutes();
           } catch (error) {

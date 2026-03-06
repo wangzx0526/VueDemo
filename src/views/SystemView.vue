@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="common-layout">
     <el-container>
       <el-aside :width="sidebarWidth" class="sidebar">
