@@ -106,12 +106,16 @@
         @selection-change="handleSelectionChange"
       >
         <el-table-column type="selection" width="55"></el-table-column>
-        <el-table-column prop="id" label="ID" width="80" v-if="false"></el-table-column>
-        <el-table-column prop="userName" label="用户名" min-width="100"></el-table-column>
-        <el-table-column prop="nickName" label="昵称" min-width="100"></el-table-column>
-        <el-table-column prop="email" label="邮箱" min-width="150"></el-table-column>
-        <el-table-column prop="phone" label="手机号" min-width="120"></el-table-column>
-        <el-table-column label="状态" min-width="80">
+        <el-table-column prop="id" label="用户编号" width="90" align="center"></el-table-column>
+        <el-table-column prop="userName" label="用户名称" min-width="120" align="center"></el-table-column>
+        <el-table-column prop="nickName" label="用户昵称" min-width="120" align="center"></el-table-column>
+        <el-table-column label="部门" min-width="140" align="center">
+          <template #default="scope">
+            {{ resolveDeptDisplay(scope.row) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="phone" label="手机号" min-width="120" align="center"></el-table-column>
+        <el-table-column label="状态" min-width="90" align="center">
           <template #default="scope">
             <el-tag 
               :type="scope.row.status === 1 ? 'success' : 'danger'" 
@@ -121,16 +125,13 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" min-width="140" fixed="right">
+        <el-table-column label="创建时间" min-width="170" align="center">
           <template #default="scope">
-            <el-button
-              link
-              type="primary"
-              icon="Edit"
-              @click="handleEdit(scope.row)"
-            >
-              修改
-            </el-button>
+            {{ formatDateTime(scope.row.createTime) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" min-width="220" fixed="right" align="center">
+          <template #default="scope">
             <el-button
               link
               type="danger"
@@ -139,6 +140,25 @@
             >
               删除
             </el-button>
+            <el-button
+              link
+              type="primary"
+              icon="Edit"
+              @click="handleEdit(scope.row)"
+            >
+              修改
+            </el-button>
+            <el-dropdown trigger="click" @command="(cmd) => handleMoreCommand(cmd, scope.row)">
+              <el-button link type="primary" icon="MoreFilled">
+                更多
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="resetPwd">修改密码</el-dropdown-item>
+                  <el-dropdown-item command="assignRole">分配角色</el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </template>
         </el-table-column>
       </el-table>
@@ -290,6 +310,69 @@
         </span>
       </template>
     </el-dialog>
+
+    <!-- 修改密码对话框 -->
+    <el-dialog
+      v-model="resetPwdDialogVisible"
+      title="修改密码"
+      width="420px"
+      :append-to-body="true"
+    >
+      <el-form :model="resetPwdForm" label-width="90px">
+        <el-form-item label="用户">
+          <el-input v-model="resetPwdForm.userName" disabled />
+        </el-form-item>
+        <el-form-item label="新密码">
+          <el-input v-model="resetPwdForm.passWord" type="password" show-password placeholder="请输入新密码" />
+        </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="resetPwdForm.confirmPassWord" type="password" show-password placeholder="请再次输入新密码" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="resetPwdDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitResetPwd">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 分配角色对话框 -->
+    <el-dialog
+      v-model="assignRoleDialogVisible"
+      title="分配角色"
+      width="520px"
+      :append-to-body="true"
+    >
+      <el-form :model="assignRoleForm" label-width="90px">
+        <el-form-item label="用户">
+          <el-input v-model="assignRoleForm.userName" disabled />
+        </el-form-item>
+        <el-form-item label="角色">
+          <el-select
+            v-model="assignRoleForm.roleIds"
+            multiple
+            filterable
+            clearable
+            placeholder="请选择角色"
+            style="width: 100%;"
+          >
+            <el-option
+              v-for="role in roleTreeData"
+              :key="role.id"
+              :label="role.roleName"
+              :value="role.id"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="assignRoleDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitAssignRole">确定</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -326,6 +409,7 @@ export default {
         status: 1           // 默认状态为正常
       },
       deptTreeData: [],   // 部门树形数据
+      deptNameMap: {},    // deptId -> deptName 映射
       roleTreeData: [],   // 角色数据
       addUserRules: {     // 新增用户表单验证规则
         userName: [
@@ -353,7 +437,22 @@ export default {
       },
       currentUser: {},    // 当前操作的用户
       multipleSelection: [], // 多选的用户
-      singleSelection: null // 单选的用户
+      singleSelection: null, // 单选的用户
+
+      // 更多操作：修改密码、分配角色
+      resetPwdDialogVisible: false,
+      resetPwdForm: {
+        id: null,
+        userName: '',
+        passWord: '',
+        confirmPassWord: ''
+      },
+      assignRoleDialogVisible: false,
+      assignRoleForm: {
+        id: null,
+        userName: '',
+        roleIds: []
+      }
     }
   },
   async mounted() {
@@ -362,6 +461,41 @@ export default {
     await this.fetchRoleData();
   },
   methods: {
+    formatDateTime(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      if (Number.isNaN(date.getTime())) return String(dateString);
+      return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    },
+
+    buildDeptNameMap(depts) {
+      const map = {};
+      (depts || []).forEach((d) => {
+        if (d && d.id != null) {
+          map[d.id] = d.deptName || d.departmentName || d.name || '';
+        }
+      });
+      this.deptNameMap = map;
+    },
+
+    resolveDeptDisplay(row) {
+      if (!row) return '';
+      const deptName = row.deptName || row.departmentName || (row.dept && row.dept.deptName);
+      if (deptName) return deptName;
+      const deptId = row.deptId ?? row.departmentId ?? (row.dept && row.dept.id);
+      if (deptId != null && this.deptNameMap && this.deptNameMap[deptId]) {
+        return this.deptNameMap[deptId];
+      }
+      return '';
+    },
+
     // 处理表格选择变化
     handleSelectionChange(selection) {
       this.multipleSelection = selection;
@@ -644,6 +778,7 @@ export default {
         }
         
         if (data) {
+          this.buildDeptNameMap(data);
           // 处理返回的数据，构建树形结构
           this.deptTreeData = this.buildDeptTree(data);
         } else {
@@ -653,6 +788,91 @@ export default {
       } catch (error) {
         console.error('Failed to fetch department tree:', error);
         this.$message.error('获取部门树形数据失败: ' + error.message);
+      }
+    },
+
+    normalizeUserResponse(response) {
+      if (response && response.code === 200 && response.data) return response.data;
+      if (response && response.id) return response;
+      return null;
+    },
+
+    async handleMoreCommand(command, row) {
+      if (!row) return;
+      if (command === 'resetPwd') {
+        this.resetPwdForm = {
+          id: row.id,
+          userName: row.userName || '',
+          passWord: '',
+          confirmPassWord: ''
+        };
+        this.resetPwdDialogVisible = true;
+        return;
+      }
+
+      if (command === 'assignRole') {
+        try {
+          const resp = await getUserById(row.id);
+          const data = this.normalizeUserResponse(resp) || row;
+          const roleIds = Array.isArray(data.roleIds) ? data.roleIds : (data.roleIds ? [data.roleIds] : []);
+          this.assignRoleForm = {
+            id: row.id,
+            userName: data.userName || row.userName || '',
+            roleIds
+          };
+          this.assignRoleDialogVisible = true;
+        } catch (e) {
+          console.error('获取用户角色信息失败:', e);
+          this.$message.error('获取用户信息失败');
+        }
+      }
+    },
+
+    async submitResetPwd() {
+      const { id, passWord, confirmPassWord } = this.resetPwdForm;
+      if (!id) return;
+      if (!passWord) {
+        this.$message.error('请输入新密码');
+        return;
+      }
+      if (passWord.length < 6) {
+        this.$message.error('密码长度至少 6 位');
+        return;
+      }
+      if (passWord !== confirmPassWord) {
+        this.$message.error('两次输入的密码不一致');
+        return;
+      }
+
+      try {
+        const ok = await updateUser({ id, passWord });
+        if (ok) {
+          this.$message.success('密码修改成功');
+          this.resetPwdDialogVisible = false;
+        } else {
+          this.$message.error('密码修改失败');
+        }
+      } catch (e) {
+        console.error('修改密码失败:', e);
+        this.$message.error('修改密码失败: ' + (e.message || '请求异常'));
+      }
+    },
+
+    async submitAssignRole() {
+      const { id, roleIds } = this.assignRoleForm;
+      if (!id) return;
+      try {
+        const ok = await updateUser({ id, roleIds: roleIds || [] });
+        if (ok) {
+          this.$message.success('角色分配成功');
+          this.assignRoleDialogVisible = false;
+          this.fetchUsers();
+        } else {
+          this.$message.error('角色分配失败');
+        }
+      } catch (e) {
+        console.error('分配角色失败:', e);
+        this.$message.error('分配角色失败: ' + (e.message || '请求异常'));
       }
     },
     
