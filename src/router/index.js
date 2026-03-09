@@ -94,7 +94,10 @@ async function ensureDynamicRoutesLoaded() {
   }
 
   try {
-    const menus = await store.dispatch('menu/generateRoutes')
+    const [menus] = await Promise.all([
+      store.dispatch('menu/generateRoutes'),
+      store.dispatch('menu/fetchUserPerms')
+    ])
     const dynamicRoutes = await store.dispatch('menu/generateDynamicRoutes')
     addDynamicRoutes(Array.isArray(dynamicRoutes) ? dynamicRoutes : [])
     store.commit('menu/SET_MENUS', Array.isArray(menus) ? menus : [])

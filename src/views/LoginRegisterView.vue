@@ -20,7 +20,7 @@
             </defs>
           </svg>
         </div>
-        <h1 class="title">Zane Admin</h1>
+        <h1 class="title">Zane Wang的管理系统</h1>
         <p class="subtitle">欢迎回来，请登录您的账户</p>
       </div>
 
@@ -151,39 +151,12 @@
           <span>{{ loading ? '提交中...' : (isLoginMode ? '登 录' : '注 册') }}</span>
         </button>
       </form>
-
-      <div class="divider" v-if="isLoginMode">
-        <span>或</span>
-      </div>
-
-      <div class="social-login" v-if="isLoginMode">
-        <button class="social-btn">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 0C5.37258 0 0 5.37258 0 12C0 17.3097 3.43802 21.8043 8.20508 23.3848V14.8906H5.4668V12H8.20508V9.16406C8.20508 6.25391 10.1367 4.40625 12.957 4.40625C14.3379 4.40625 15.793 4.65234 15.793 4.65234V7.5H14.1934C12.627 7.5 12.002 8.78906 12.002 10.123V12H15.5859L14.9355 14.8906H12.002V23.3848C16.7621 21.8043 20.199 17.3097 20.199 12C20.199 5.37258 14.8264 0 12 0Z" fill="#1877F2"/>
-          </svg>
-        </button>
-        <button class="social-btn">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M22.56 12.25C22.56 11.47 22.5 10.71 22.35 10H12V14.44H17.95C17.65 15.94 16.78 17.17 15.58 17.97V20.61H18.93C21.12 18.56 22.56 15.71 22.56 12.25Z" fill="#4285F4"/>
-            <path d="M12 23C14.97 23 17.45 22.02 18.93 20.61L15.58 17.97C14.78 18.5 13.75 18.83 12 18.83C9.06 18.83 6.6 16.95 5.85 14.37H2.38V17.13C3.85 20.05 7.67 23 12 23Z" fill="#34A853"/>
-            <path d="M5.85 14.37C5.65 13.79 5.53 13.16 5.53 12.5C5.53 11.84 5.65 11.21 5.85 10.63V7.87H2.38C1.69 9.25 1.3 10.84 1.3 12.5C1.3 14.16 1.69 15.75 2.38 17.13L5.85 14.37Z" fill="#FBBC04"/>
-            <path d="M12 5.38C13.71 5.38 15.21 5.96 16.39 7.08L19.48 4C17.45 2.15 14.97 1 12 1C7.67 1 3.85 3.95 2.38 6.87L5.85 10.63C6.6 8.05 9.06 5.38 12 5.38Z" fill="#EA4335"/>
-          </svg>
-        </button>
-        <button class="social-btn">
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 0C5.37 0 0 5.37 0 12C0 17.63 5.37 23 12 23C18.63 23 24 17.63 24 12C24 5.37 18.63 0 12 0Z" fill="black"/>
-            <path d="M12 6C8.69 6 6 8.69 6 12C6 14.65 7.84 16.87 10.44 17.67V14.89H8.9V12H10.44V10.16C10.44 8.65 11.32 7.85 12.73 7.85C13.42 7.85 14.14 7.97 14.14 7.97V9.5H13.38C12.6 9.5 12.02 10.13 12.02 10.8V12H14.02L13.68 14.89H12.02V17.67C14.63 16.87 16.48 14.65 16.48 12C16.48 8.69 13.8 6 10.42 6H12Z" fill="white"/>
-          </svg>
-        </button>
-      </div>
     </div>
   </div>
 </template>
 
 <script>
 import { login as apiLogin, register as apiRegister } from '@/api/auth';
-import { mapActions } from 'vuex';
 
 export default {
   name: 'LoginRegisterView',
@@ -197,23 +170,42 @@ export default {
       showConfirmPassword: false,
       rememberMe: false,
       formData: {
-        username: '',
+        username: 'admin',
         email: '',
-        password: '',
+        password: '123123',
         confirmPassword: ''
       }
     };
   },
   methods: {
-    ...mapActions('menu', ['generateRoutes']),
     switchToLogin() {
       this.isLoginMode = true;
       this.clearMessage();
+      this.resetForm();
     },
     
     switchToRegister() {
       this.isLoginMode = false;
       this.clearMessage();
+      this.resetForm();
+    },
+    
+    resetForm() {
+      if (this.isLoginMode) {
+        this.formData = {
+          username: 'admin',
+          email: '',
+          password: '123123',
+          confirmPassword: ''
+        };
+      } else {
+        this.formData = {
+          username: '',
+          email: '',
+          password: '',
+          confirmPassword: ''
+        };
+      }
     },
     
     async submitForm() {
@@ -295,12 +287,6 @@ export default {
           localStorage.setItem('authToken', token);
           
           localStorage.removeItem('systemTabsData');
-          
-          try {
-            await this.generateRoutes();
-          } catch (error) {
-            console.error('Failed to load user menu:', error);
-          }
           
           this.showMessage('登录成功！', 'success');
           
@@ -782,30 +768,6 @@ export default {
   justify-content: center;
   gap: 16px;
   padding: 0 40px 40px;
-}
-
-.social-btn {
-  width: 50px;
-  height: 50px;
-  border: 2px solid #e2e8f0;
-  background: white;
-  border-radius: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.social-btn:hover {
-  border-color: #667eea;
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
-}
-
-.social-btn svg {
-  width: 24px;
-  height: 24px;
 }
 
 @media (max-width: 768px) {

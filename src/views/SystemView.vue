@@ -141,7 +141,6 @@
 
 <script>
 import { Platform, Document, Fold, Expand, House, Setting, Tools, User, List, Avatar, OfficeBuilding, Menu } from '@element-plus/icons-vue'
-import { mapActions } from 'vuex'
 import { logout } from '@/api/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { resetRouter } from '@/router'
@@ -223,22 +222,16 @@ export default {
     this.updateActiveStates(this.$route.path);
   },
   methods: {
-    ...mapActions('menu', ['generateRoutes', 'generateDynamicRoutes']),
-    
     async loadUserMenu() {
       try {
-        const menus = await this.generateRoutes();
-        this.dynamicMenus = Array.isArray(menus) ? menus : [];
-
-        const dynamicRoutes = await this.generateDynamicRoutes();
-        const routeList = Array.isArray(dynamicRoutes) ? dynamicRoutes : [];
-
-        const { addDynamicRoutes } = await import('@/router');
-        addDynamicRoutes(routeList);
-
-        if (this.$route.path !== '/system' && this.$route.name === 'system-home') {
-          this.$router.replace(this.$route.fullPath);
+        const menusFromStore = this.$store.getters['menu/menus'];
+        if (Array.isArray(menusFromStore) && menusFromStore.length > 0) {
+          this.dynamicMenus = menusFromStore;
+          return;
         }
+
+        const menus = await this.$store.dispatch('menu/generateRoutes');
+        this.dynamicMenus = Array.isArray(menus) ? menus : [];
       } catch (error) {
         console.error('Failed to load user menu:', error);
       }

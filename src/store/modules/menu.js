@@ -1,8 +1,9 @@
-import { getUserMenu } from '@/api/menu';
+import { getUserMenu, getUserPerms } from '@/api/menu';
 
 const state = {
   menus: [],
-  flatMenuMap: {}
+  flatMenuMap: {},
+  userPerms: []
 };
 
 const mutations = {
@@ -11,6 +12,9 @@ const mutations = {
   },
   SET_FLAT_MENU_MAP: (state, flatMenuMap) => {
     state.flatMenuMap = flatMenuMap;
+  },
+  SET_USER_PERMS: (state, perms) => {
+    state.userPerms = perms;
   }
 };
 
@@ -26,6 +30,25 @@ const actions = {
       return menus;
     } catch (error) {
       console.error('Failed to generate routes:', error);
+      return [];
+    }
+  },
+
+  async fetchUserPerms({ commit }) {
+    try {
+      const response = await getUserPerms();
+      let perms = [];
+      if (Array.isArray(response)) {
+        perms = response;
+      } else if (response && Array.isArray(response.data)) {
+        perms = response.data;
+      } else if (response && response.code === 200 && Array.isArray(response.data)) {
+        perms = response.data;
+      }
+      commit('SET_USER_PERMS', perms);
+      return perms;
+    } catch (error) {
+      console.error('Failed to fetch user permissions:', error);
       return [];
     }
   },
@@ -228,6 +251,20 @@ function resolveRouteComponent(menu) {
 const getters = {
   menus: state => state.menus,
   flatMenuMap: state => state.flatMenuMap,
+  userPerms: state => state.userPerms,
+
+  permissions: state => {
+    if (state.userPerms && state.userPerms.length > 0) {
+      return state.userPerms;
+    }
+    const perms = [];
+    Object.values(state.flatMenuMap).forEach(menu => {
+      if (menu.perms && menu.perms.trim() !== '') {
+        perms.push(menu.perms.trim());
+      }
+    });
+    return perms;
+  },
 
   hasPermission: state => perms => {
     if (!perms || perms === '') return true;

@@ -31,7 +31,7 @@
     
     <!-- 操作按钮栏 -->
     <div class="operation-bar">
-      <el-button type="primary" @click="handleAdd()">新增</el-button>
+      <el-button type="primary" @click="handleAdd()" v-permission="'sys:dept:add'">新增</el-button>
       <el-button @click="toggleExpandAll">{{ isExpandAll ? '折叠全部' : '展开全部' }}</el-button>
     </div>
 
@@ -78,6 +78,7 @@
               type="primary"
               @click="handleAddChild(scope.row)"
               icon="Plus"
+              v-permission="'sys:dept:add'"
             >
               新增子部门
             </el-button>
@@ -86,6 +87,7 @@
               type="warning"
               @click="handleEdit(scope.row)"
               icon="Edit"
+              v-permission="'sys:dept:edit'"
             >
               修改
             </el-button>
@@ -94,6 +96,7 @@
               type="danger"
               @click="handleDelete(scope.row)"
               icon="Delete"
+              v-permission="'sys:dept:delete'"
             >
               删除
             </el-button>

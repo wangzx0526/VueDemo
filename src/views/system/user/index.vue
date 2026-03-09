@@ -44,6 +44,7 @@
           plain
           icon="Plus"
           @click="handleAdd"
+          v-permission="'sys:user:add'"
         >
           新增
         </el-button>
@@ -55,6 +56,7 @@
           icon="Edit"
           :disabled="!singleSelection"
           @click="handleEdit(singleSelection)"
+          v-permission="'sys:user:edit'"
         >
           修改
         </el-button>
@@ -66,6 +68,7 @@
           icon="Delete"
           :disabled="!multipleSelection.length"
           @click="handleBatchDelete"
+          v-permission="'sys:user:delete'"
         >
           删除
         </el-button>
@@ -76,6 +79,7 @@
           plain
           icon="Upload"
           @click="handleImport"
+          v-permission="'sys:user:import'"
         >
           导入
         </el-button>
@@ -86,6 +90,7 @@
           plain
           icon="Download"
           @click="handleExport"
+          v-permission="'sys:user:export'"
         >
           导出
         </el-button>
@@ -137,6 +142,7 @@
               type="danger"
               icon="Delete"
               @click="handleDelete(scope.row)"
+              v-permission="'sys:user:delete'"
             >
               删除
             </el-button>
@@ -145,17 +151,18 @@
               type="primary"
               icon="Edit"
               @click="handleEdit(scope.row)"
+              v-permission="'sys:user:edit'"
             >
               修改
             </el-button>
-            <el-dropdown trigger="click" @command="(cmd) => handleMoreCommand(cmd, scope.row)">
+            <el-dropdown trigger="click" @command="(cmd) => handleMoreCommand(cmd, scope.row)" v-permission="['sys:user:resetPwd', 'sys:user:assignRole']">
               <el-button link type="primary" icon="MoreFilled">
                 更多
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="resetPwd">修改密码</el-dropdown-item>
-                  <el-dropdown-item command="assignRole">分配角色</el-dropdown-item>
+                  <el-dropdown-item command="resetPwd" v-permission="'sys:user:resetPwd'">修改密码</el-dropdown-item>
+                  <el-dropdown-item command="assignRole" v-permission="'sys:user:assignRole'">分配角色</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -587,18 +594,23 @@ export default {
         // 调用API更新用户信息，后端API使用POST方法和/update路径
         const response = await updateUser(this.editUserForm);
         
-        // 检查返回值，后端返回Boolean类型
-        if(response) {
+        // 检查返回码，只有code为200时才认为成功
+        if(response && response.code === 200) {
           this.$message.success('用户信息更新成功！');
           this.dialogVisible = false;
           // 重新获取用户列表
           this.fetchUsers();
         } else {
-          this.$message.error('更新用户信息失败');
+          this.$message.error(response?.message || '更新用户信息失败');
         }
       } catch (error) {
         console.error('Failed to update user:', error);
-        this.$message.error('更新用户信息失败: ' + error.message);
+        const errorCode = Number(error?.code ?? error?.response?.data?.code ?? error?.response?.status);
+        const serverMessage = error?.message || error?.response?.data?.message || '';
+        const errorMessage = errorCode === 403
+          ? `${errorCode}: ${serverMessage || '无权限'}`
+          : (error.response?.data?.message || error.message || '更新用户信息失败');
+        this.$message.error(errorMessage);
       }
     },
     async handleDelete(row) {
@@ -612,17 +624,22 @@ export default {
         
         // 调用API删除用户
         const response = await deleteUser(row.id);
-        if(response) {
+        if(response && response.code === 200) {
           this.$message.success('删除成功！');
           // 重新获取用户列表
           this.fetchUsers();
         } else {
-          this.$message.error('删除失败');
+          this.$message.error(response?.message || '删除失败');
         }
       } catch (error) {
         console.error('Failed to delete user:', error);
-        if (error !== 'cancel') { // 如果不是用户取消操作
-          this.$message.error('删除失败: ' + error.message);
+        if (error !== 'cancel') {
+          const errorCode = Number(error?.code ?? error?.response?.data?.code ?? error?.response?.status);
+          const serverMessage = error?.message || error?.response?.data?.message || '';
+          const errorMessage = errorCode === 403
+            ? `${errorCode}: ${serverMessage || '无权限'}`
+            : (error.response?.data?.message || error.message || '删除失败');
+          this.$message.error(errorMessage);
         }
       }
     },
@@ -668,7 +685,7 @@ export default {
         // 调用API新增用户
         const response = await addUser(this.addUserForm);
         
-        if(response) {
+        if(response && response.code === 200) {
           this.$message.success('用户新增成功！');
           this.addDialogVisible = false;
           // 重置表单
@@ -685,11 +702,16 @@ export default {
           // 重新获取用户列表
           this.fetchUsers();
         } else {
-          this.$message.error('新增用户失败');
+          this.$message.error(response?.message || '新增用户失败');
         }
       } catch (error) {
         console.error('Failed to add user:', error);
-        this.$message.error('新增用户失败: ' + error.message);
+        const errorCode = Number(error?.code ?? error?.response?.data?.code ?? error?.response?.status);
+        const serverMessage = error?.message || error?.response?.data?.message || '';
+        const errorMessage = errorCode === 403
+          ? `${errorCode}: ${serverMessage || '无权限'}`
+          : (error.response?.data?.message || error.message || '新增用户失败');
+        this.$message.error(errorMessage);
       }
     },
     // 批量删除
@@ -714,7 +736,7 @@ export default {
         // 调用API批量删除用户
         const response = await batchDeleteUsers(userIds);
         
-        if(response) {
+        if(response && response.code === 200) {
           this.$message.success('批量删除成功！');
           // 清空选择
           this.multipleSelection = [];
@@ -722,12 +744,17 @@ export default {
           // 重新获取用户列表
           this.fetchUsers();
         } else {
-          this.$message.error('批量删除失败');
+          this.$message.error(response?.message || '批量删除失败');
         }
       } catch (error) {
         console.error('Failed to batch delete users:', error);
-        if (error !== 'cancel') { // 如果不是用户取消操作
-          this.$message.error('批量删除失败: ' + error.message);
+        if (error !== 'cancel') {
+          const errorCode = Number(error?.code ?? error?.response?.data?.code ?? error?.response?.status);
+          const serverMessage = error?.message || error?.response?.data?.message || '';
+          const errorMessage = errorCode === 403
+            ? `${errorCode}: ${serverMessage || '无权限'}`
+            : (error.response?.data?.message || error.message || '批量删除失败');
+          this.$message.error(errorMessage);
         }
       }
     },

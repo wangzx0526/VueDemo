@@ -61,7 +61,7 @@
           plain
           icon="Plus"
           @click="handleAdd"
-          v-hasPermi="['system:role:add']"
+          v-permission="'sys:role:add'"
         >
           新增
         </el-button>
@@ -73,7 +73,7 @@
           icon="Edit"
           :disabled="single"
           @click="handleEdit(singleSelection)"
-          v-hasPermi="['system:role:edit']"
+          v-permission="'sys:role:edit'"
         >
           修改
         </el-button>
@@ -85,7 +85,7 @@
           icon="Delete"
           :disabled="multiple"
           @click="handleBatchDelete"
-          v-hasPermi="['system:role:remove']"
+          v-permission="'sys:role:delete'"
         >
           删除
         </el-button>
@@ -96,7 +96,7 @@
           plain
           icon="Upload"
           @click="handleImport"
-          v-hasPermi="['system:role:import']"
+          v-permission="'sys:role:import'"
         >
           导入
         </el-button>
@@ -107,7 +107,7 @@
           plain
           icon="Download"
           @click="handleExport"
-          v-hasPermi="['system:role:export']"
+          v-permission="'sys:role:export'"
         >
           导出
         </el-button>
@@ -152,7 +152,7 @@
             type="primary"
             icon="Edit"
             @click="handleEdit(scope.row)"
-            v-hasPermi="['system:role:edit']"
+            v-permission="'sys:role:edit'"
           >
             修改
           </el-button>
@@ -161,7 +161,7 @@
             type="danger"
             icon="Delete"
             @click="handleDelete(scope.row)"
-            v-hasPermi="['system:role:remove']"
+            v-permission="'sys:role:delete'"
           >
             删除
           </el-button>
@@ -576,17 +576,19 @@ export default {
         // 调用API新增角色
         const response = await addRole(formData);
         
-        if(response) {
+        if(response && response.code === 200) {
           ElMessage.success('角色新增成功！');
           this.addDialogVisible = false;
           // 重新获取角色列表
           this.fetchRoles();
         } else {
-          ElMessage.error('新增角色失败');
+          ElMessage.error(response?.message || '新增角色失败');
         }
       } catch (error) {
         console.error('Failed to add role:', error);
-        ElMessage.error('新增角色失败: ' + error.message);
+        // 提取后端返回的错误消息
+        const errorMessage = error.response?.data?.message || error.message || '新增角色失败';
+        ElMessage.error(errorMessage);
       }
     },
     
@@ -643,17 +645,19 @@ export default {
         // 调用API更新角色信息
         const response = await updateRole(formData);
         
-        if(response) {
+        if(response && response.code === 200) {
           ElMessage.success('角色信息更新成功！');
           this.dialogVisible = false;
           // 重新获取角色列表
           this.fetchRoles();
         } else {
-          ElMessage.error('更新角色信息失败');
+          ElMessage.error(response?.message || '更新角色信息失败');
         }
       } catch (error) {
         console.error('Failed to update role:', error);
-        ElMessage.error('更新角色信息失败: ' + error.message);
+        // 提取后端返回的错误消息
+        const errorMessage = error.response?.data?.message || error.message || '更新角色信息失败';
+        ElMessage.error(errorMessage);
       }
     },
     
@@ -672,17 +676,19 @@ export default {
         
         // 调用API删除角色
         const response = await deleteRole(row.id);
-        if(response) {
+        if(response && response.code === 200) {
           ElMessage.success('删除成功！');
           // 重新获取角色列表
           this.fetchRoles();
         } else {
-          ElMessage.error('删除失败');
+          ElMessage.error(response?.message || '删除失败');
         }
       } catch (error) {
         console.error('Failed to delete role:', error);
         if (error !== 'cancel') {
-          ElMessage.error('删除失败: ' + error.message);
+          // 提取后端返回的错误消息
+          const errorMessage = error.response?.data?.message || error.message || '删除失败';
+          ElMessage.error(errorMessage);
         }
       }
     },
@@ -709,7 +715,7 @@ export default {
         // 调用API批量删除角色
         const response = await batchDeleteRoles(roleIds);
         
-        if(response) {
+        if(response && response.code === 200) {
           ElMessage.success('批量删除成功！');
           // 清空选择
           this.multipleSelection = [];
@@ -719,12 +725,14 @@ export default {
           // 重新获取角色列表
           this.fetchRoles();
         } else {
-          ElMessage.error('批量删除失败');
+          ElMessage.error(response?.message || '批量删除失败');
         }
       } catch (error) {
         console.error('Failed to batch delete roles:', error);
         if (error !== 'cancel') {
-          ElMessage.error('批量删除失败: ' + error.message);
+          // 提取后端返回的错误消息
+          const errorMessage = error.response?.data?.message || error.message || '批量删除失败';
+          ElMessage.error(errorMessage);
         }
       }
     },

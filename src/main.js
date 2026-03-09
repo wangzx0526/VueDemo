@@ -6,6 +6,7 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import Pagination from './components/Pagination/index.vue'
 import RightToolbar from './components/RightToolbar/index.vue'
+import permission from './directives/permission'
 
 const resizeObserverLoopError = 'ResizeObserver loop completed with undelivered notifications.'
 
@@ -25,4 +26,5 @@ const app = createApp(App)
 app.use(store).use(router).use(ElementPlus)
 app.component('Pagination', Pagination)
 app.component('RightToolbar', RightToolbar)
+app.directive('permission', permission)
 app.mount('#app')

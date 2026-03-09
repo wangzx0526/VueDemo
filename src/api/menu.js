@@ -1,7 +1,11 @@
 import apiClient from './index';
 
 export const getUserMenu = () => {
-  return apiClient.get('/system/menu/userMenu');
+  return apiClient.get('/system/menu/getRouters');
+};
+
+export const getUserPerms = () => {
+  return apiClient.get('/system/menu/userPerms');
 };
 
 export const getAllMenu = () => {
